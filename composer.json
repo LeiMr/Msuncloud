@@ -1,0 +1,33 @@
+{
+    "name": "star_lei/msuncloud",
+    "description": "PHP-SDK",
+    "type": "l",
+    "require": {
+        "php": ">=7.0",
+        "guzzlehttp/guzzle": "^6.2 || ^7.0",
+        "textalk/websocket": "^1.0",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "ext-curl": "*"
+    },
+    "license": "Apache",
+    "autoload": {
+        "psr-4": {
+            "StarLei\\Msuncloud\\": "src/"
+        },
+        "files": [
+            "src/Kernel/Helpers.php"
+        ]
+    },
+    "authors": [
+        {
+            "name": "'Shadow'",
+            "email": "m89520@163.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require-dev": {
+        "phpunit/phpunit": "9.6.x-dev"
+    }
+}
