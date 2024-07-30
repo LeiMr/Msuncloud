@@ -7,6 +7,7 @@ use Closure;
 use GuzzleHttp\Exception\GuzzleException;
 use StarLei\Msuncloud\Kernel\Contracts\RequestInterface;
 use StarLei\Msuncloud\Kernel\Exceptions\HttpException;
+use StarLei\Msuncloud\Kernel\Exceptions\InvalidConfigException;
 use StarLei\Msuncloud\Kernel\Http\Response;
 use StarLei\Msuncloud\Kernel\Traits\HasHttpRequests;
 
@@ -18,6 +19,7 @@ use StarLei\Msuncloud\Kernel\Traits\HasHttpRequests;
  * @method BaseClient setHeaderSign($value)
  * @method BaseClient setHeaderLoginUser($value)
  * @method BaseClient setHeaderGrayscale($value)
+ * @method BaseClient setHeaderLicense($value)
  */
 class BaseClient implements RequestInterface
 {
@@ -34,11 +36,20 @@ class BaseClient implements RequestInterface
      */
     private $socketUrl = 'wss://thirdpart-graytest.msunhis.com:9443/openapi-websocket/msun-websocket-server/ws-server';
     /**
+     * @var string
+     */
+    private $licenseUrl = 'http://127.0.0.1:20002/license/get';
+
+    /**
+     * @var string
+     */
+    private $sm2Url = 'http://127.0.0.1:20002/sign/get';
+    /**
      * The paths that should be published.
      *
      * @var array
      */
-    private $allowedHeader = ['orgId', 'hospitalId', 'appId', 'sign', 'timestamp', 'signType', 'loginUser', 'grayscale'];
+    private $allowedHeader = ['orgId', 'hospitalId', 'appId', 'sign', 'timestamp', 'signType', 'loginUser', 'grayscale','license'];
     /**
      * @var array
      */
@@ -63,6 +74,8 @@ class BaseClient implements RequestInterface
     /**
      * SoapRequest constructor.
      * @param array $config
+     * @throws GuzzleException
+     * @throws InvalidConfigException
      */
     public function __construct(array $config = [])
     {
@@ -73,22 +86,25 @@ class BaseClient implements RequestInterface
     /**
      * 配置处理
      * @param $config
+     * @throws InvalidConfigException
+     * @throws GuzzleException
      */
     protected function allocation($config)
     {
         $config = array_merge($this->defaultConfig, $config);
 
-        if (isset($config['baseUri']) && !is_null($config['baseUri'])) {
+        if (isset($config['baseUri'])) {
             $this->setBaseUri($config['baseUri']);
         }
-        if (isset($config['appSecret']) && !is_null($config['appSecret'])) {
+        if (isset($config['appSecret'])) {
             $this->setAppSecret($config['appSecret']);
         }
         $this->debug = $config['debug'] ?? false;
         $config = only($config, $this->allowedHeader);
         $this->setHeader($config);
         $this->setTime();
-
+        // 新追加SM2方式
+        if ($config['signType'] === 'SM2') $this->setLicense();
     }
 
     /**
@@ -120,7 +136,7 @@ class BaseClient implements RequestInterface
      */
     public function setHeader(array $params = []): RequestInterface
     {
-        $header = $this->header ? $this->header : [];
+        $header = $this->header ?: [];
         $this->header = array_merge($header, $params);
         return $this;
     }
@@ -135,21 +151,64 @@ class BaseClient implements RequestInterface
         $this->setHeaderTimestamp($time);
         return $time;
     }
+    /**
+     * 设置License
+     * @return RequestInterface
+     * @throws GuzzleException|Exceptions\InvalidConfigException
+     */
+    private function setLicense(): RequestInterface
+    {
+        $license = null;
+        $params = [
+            'appId' => $this->header['appId'],
+            'appSecret' => $this->header['appSecret'],
+            'signType' => 'SM2',
+            'timestamp' => $this->header['timestamp'],
+        ];
+        $response = $this->performRequest($this->licenseUrl,'POST',$params);
+        $response = $this->castResponseToType($response);
+        if($response['code'] === 200 && isset($response['data']['license'])){
+            $license = $response['data']['license'];
+        }
+        $this->setHeaderLicense($license);
+        return $this;
+    }
 
+    /**
+     * 获取sm2签名
+     * @param string $signString
+     * @return $this
+     * @throws GuzzleException
+     * @throws InvalidConfigException
+     */
+    private function getSignSm2(string $signString)
+    {
+        $sign = null;
+        $params = [
+            'signatureStr' => $signString,
+            'appSecret' => $this->appSecret
+        ];
+        $response = $this->performRequest($this->sm2Url,'POST',$params);
+        $response = $this->castResponseToType($response);
+        if($response['code'] === 200 && isset($response['data']['sign'])){
+            $sign = $response['data']['sign'];
+        }
+        return $sign;
+    }
     /**
      * @param string $url
      * @param string $method
      * @param array $options
-     * @param false $returnRaw
+     * @param false $debug
      * @param string $returnType
      * @return array|mixed|object|Response
      * @throws Exceptions\InvalidConfigException
      * @throws GuzzleException
      */
-    public function request(string $url, string $method = 'GET', array $options = [], $returnRaw = false, $returnType = 'array')
+    public function request(string $url, string $method = 'GET', array $options = [], $debug = false, $returnType = 'array')
     {
         $response = $this->performRequest($url, $method, $options, $this->debug);
-        return $returnRaw ? $response : $this->castResponseToType($response, $returnType);
+        return $debug ? $response : $this->castResponseToType($response, $returnType);
     }
 
     /**
@@ -170,7 +229,9 @@ class BaseClient implements RequestInterface
      * @param array $params
      * @param string $method
      * @return array
+     * @throws GuzzleException
      * @throws HttpException
+     * @throws InvalidConfigException
      */
     public function generation(string $path = '', array $params = [], string $method = 'GET'): array
     {
@@ -191,7 +252,12 @@ class BaseClient implements RequestInterface
                 $url .= '?' . $string;
                 $typeKey = 'query';
         }
-        $sign = getSign($signString, $this->appSecret);
+        if($this->header['signType'] === 'SM2'){
+            $sign =$this->getSignSm2($signString);
+
+        }else{
+            $sign = getSign($signString, $this->appSecret);
+        }
         $this->setHeaderSign($sign);
         if ($method == 'SOCKET') {
             $url = $this->socketUrl . '?' . arrayToQueryString(array_merge($this->header, $this->data), true);
@@ -212,7 +278,7 @@ class BaseClient implements RequestInterface
      */
     public function setParams(array $params = []): RequestInterface
     {
-        $data = $this->data ? $this->data : [];
+        $data = $this->data ?: [];
         $this->data = array_merge($data, $params);
         return $this;
     }

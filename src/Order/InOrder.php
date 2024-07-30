@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace StarLei\Msuncloud\Order;
 
 use GuzzleHttp\Exception\GuzzleException;
-use StarLei\Msuncloud\Dict\LoginUser;
 use StarLei\Msuncloud\HttpClient;
 use StarLei\Msuncloud\Kernel\Exceptions\Exception;
 use StarLei\Msuncloud\Kernel\Exceptions\HttpException;
@@ -28,9 +27,12 @@ class InOrder
      * @var HttpClient
      */
     private $client;
+
     /**
      * Dept constructor.
      * @param $config
+     * @throws GuzzleException
+     * @throws InvalidConfigException
      */
     public function __construct($config)
     {
@@ -45,7 +47,7 @@ class InOrder
      * @throws HttpException
      * @throws InvalidConfigException
      */
-    public function index($params = []): array
+    public function index(array $params = []): array
     {
         return $this->toArray($this->client->get($this->path, $params));
     }

@@ -36,6 +36,8 @@ class Patient
     /**
      * Dept constructor.
      * @param $config
+     * @throws GuzzleException
+     * @throws InvalidConfigException
      */
     public function __construct($config)
     {
@@ -43,13 +45,13 @@ class Patient
     }
 
     /**
-     * @param $params
+     * @param array $params
      * @return array
      * @throws GuzzleException
      * @throws HttpException
      * @throws InvalidConfigException|Exception
      */
-    public function index($params = []): array
+    public function index(array $params = []): array
     {
         $requiredArr = only($params, $this->required);
         if (empty($requiredArr)) {
@@ -59,12 +61,12 @@ class Patient
     }
 
     /**
-     * @param $params
+     * @param array $params
      * @return array
      * @throws HttpException
      * @throws Exception
      */
-    public function batchQuery($params = []): array
+    public function batchQuery(array $params = []): array
     {
         $request = [];
         foreach ($params as $item) {
@@ -76,7 +78,7 @@ class Patient
         }
         $data = [];
         $this->client->async($request,
-            function ($response, $index) use (&$data) {
+            function ($response) use (&$data) {
                 // 此处处理每个请求的成功响应
                 //echo "请求 #{$index} 查看成功。";
                 $data[] = $this->toArray($this->castResponseToType($response));

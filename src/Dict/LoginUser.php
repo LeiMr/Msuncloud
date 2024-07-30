@@ -16,19 +16,10 @@ class LoginUser
      * @var Identity
      */
     private $identityClient;
-    /**
-     * @var Dept
-     */
-    private $deptClient;
-
-    /**
-     * @var array
-     */
-    private $config;
 
     /**
      * Dept constructor.
-     * @param $config
+     * @param array $config
      */
     public function __construct(array $config)
     {

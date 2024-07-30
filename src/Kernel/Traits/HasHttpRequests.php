@@ -29,14 +29,14 @@ trait HasHttpRequests
     protected $httpClient;
 
     /**
-     * @param $url
+     * @param string $url
      * @param string $method
      * @param array $options
      * @param bool $debug
      * @return ResponseInterface
      * @throws GuzzleException
      */
-    public function request($url, $method = 'GET', $options = [], $debug = false): ResponseInterface
+    public function request(string $url, string $method = 'GET', array $options = [], $debug = false): ResponseInterface
     {
         $method = strtoupper($method);
 
@@ -99,17 +99,17 @@ trait HasHttpRequests
         $request = function ($requests) {
             foreach ($requests as $request) {
                 $method = strtoupper($request['method']);
-                $options = array_merge(self::$defaults, $request['option'] ?? []);
+                $options = array_merge(self::$defaults, $request);
                 $options = $this->fixJsonIssue($options);
-                $url = $request['url'] ?? '';
-                $header = $request['headers'] ?? [];
+                $url = $options['url'] ?? '';
+                $header = $options['headers'] ?? [];
                 $body = $options['body'] ?? null;
                 yield new Request($method, $url,$header,$body);
             }
         };
         // 创建并发请求池
         $pool = new Pool($client, $request($requests), [
-            'concurrency' => 10,
+            'concurrency' => 20,
             'fulfilled' => $success,
             'rejected' => $error,
         ]);

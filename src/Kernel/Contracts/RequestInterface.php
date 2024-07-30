@@ -19,7 +19,7 @@ interface RequestInterface
 
     public function setBaseUri(string $baseUri): self;
 
-    public function request(string $url, string $method = 'GET', array $options = [], $returnRaw = false, $returnType = 'array');
+    public function request(string $url, string $method = 'GET', array $options = [], $debug = false, $returnType = 'array');
 
     public function generation(string $path = '', array $params = [], string $method = 'GET'): array;
 

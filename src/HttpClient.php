@@ -53,12 +53,9 @@ class HttpClient extends BaseClient
         $curls = [];
         foreach ($params as $item){
             list($url, $options)= $this->generation($item['path'], $item['data'], $item['method']);
-            $curls[] = [
-                'url' => $url,
-                'headers' => $options['headers'],
-                'body' =>$options['body'] ?? null,
-                'method' => $item['method']
-            ];
+            $options['url'] = $url;
+            $options['method']=$item['method'];
+            $curls[] = $options;
         }
        $this->asyncRequest($curls, $success, $error);
     }

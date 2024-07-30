@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace StarLei\Msuncloud\CareCloud;
 
 use GuzzleHttp\Exception\GuzzleException;
-use StarLei\Msuncloud\Dict\LoginUser;
 use StarLei\Msuncloud\HttpClient;
 use StarLei\Msuncloud\Kernel\Exceptions\Exception;
 use StarLei\Msuncloud\Kernel\Exceptions\HttpException;
@@ -32,6 +31,8 @@ class ChangeBed
     /**
      * Dept constructor.
      * @param $config
+     * @throws GuzzleException
+     * @throws InvalidConfigException
      */
     public function __construct($config)
     {
@@ -46,7 +47,7 @@ class ChangeBed
      * @throws HttpException
      * @throws InvalidConfigException
      */
-    public function index($params = []): array
+    public function index(array $params = []): array
     {
         return $this->toArray($this->client->post($this->path, $params));
     }
