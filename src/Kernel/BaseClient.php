@@ -161,11 +161,11 @@ class BaseClient implements RequestInterface
         $license = null;
         $params = [
             'appId' => $this->header['appId'],
-            'appSecret' => $this->header['appSecret'],
+            'appSecret' => $this->appSecret,
             'signType' => 'SM2',
             'timestamp' => $this->header['timestamp'],
         ];
-        $response = $this->performRequest($this->licenseUrl,'POST',$params);
+        $response = $this->performRequest($this->licenseUrl,'POST',['json'=>$params]);
         $response = $this->castResponseToType($response);
         if($response['code'] === 200 && isset($response['data']['license'])){
             $license = $response['data']['license'];
@@ -188,7 +188,7 @@ class BaseClient implements RequestInterface
             'signatureStr' => $signString,
             'appSecret' => $this->appSecret
         ];
-        $response = $this->performRequest($this->sm2Url,'POST',$params);
+        $response = $this->performRequest($this->sm2Url,'POST',['json'=>$params]);
         $response = $this->castResponseToType($response);
         if($response['code'] === 200 && isset($response['data']['sign'])){
             $sign = $response['data']['sign'];
